@@ -235,7 +235,14 @@ class AIComponent:
 					self.owner.Pathfinding.SuccessfullyMovedToNextPoint()
 				else:
 					if Map[x][y].name == 'Door':
-						Map[x][y].InteractWithPartUsingChoice('DoorPart','Open')
+						print(self.owner.name + ' has found a door')
+						opened = Map[x][y].InteractWithPartUsingChoice('DoorPart','Open')
+						print(self.owner.name + ' Tried to open the door')
+						if opened == False:
+							libtcod.map_set_properties(self.owner.Pathfinding.navmap,x,y,False,False)
+							print(self.owner.name + ' thinks that door at ' + str(x) + ',' + str(y) + ' is locked')
+						else:
+							print(self.owner.name + ' succesfully opened the door')
 					self.owner.Pathfinding.FailedToMoveToNextPoint()
 	
 	def FollowTarget(self,target = 'Undefined'):
@@ -289,7 +296,7 @@ class Terrain:
 
 	def InteractWithPartUsingChoice(self,part,choice):
 		if part == 'DoorPart':
-			self.Door.InteractUsingChoice(choice)
+			return self.Door.InteractUsingChoice(choice)
 			UpdateFOVtile(self.x,self.y)
 	
 	def InteractByPlayer(self):
@@ -298,33 +305,48 @@ class Terrain:
 			UpdateFOVtile(self.x,self.y)
 
 class DoorComponent:
-	def __init__(self,owner, openchar, closedchar,state,toggleflags):
+	def __init__(self,owner, openchar, closedchar,state,flags,toggleflags):
 		self.owner = owner
 		self.openchar = openchar
 		self.closedchar = closedchar
 		self.state = state
+		self.flags = flags
 		self.toggleflags = toggleflags
 
 	def InteractUsingChoice(self,choice):
 		if choice == 'Open':
-			for pair in self.toggleflags:
-				ReplaceInList(self.owner.flags,pair[0],pair[1])
-			self.owner.char = self.openchar
-			self.state = 'Open'
+			if self.state != 'Locked':
+				for pair in self.toggleflags:
+					ReplaceInList(self.owner.flags,pair[0],pair[1])
+				self.owner.char = self.openchar
+				self.state = 'Open'
+				return True
+			else:
+				return False
 		elif choice == 'Close':
 			if IsTileEmpty(self.owner.x,self.owner.y):
 				for pair in self.toggleflags:
 					ReplaceInList(self.owner.flags,pair[1],pair[0])
 				self.owner.char = self.closedchar
 				self.state = 'Closed'
+				return True
+			else:
+				return False
 	
 	def InteractByPlayer(self):
 		choices = []
+		# Define which choices are available
 		if self.state == 'Closed':
 			choices.append('Open')
-		else:
+			if 'Lockable' in self.flags:
+				choices.append('Lock')
+		elif self.state == 'Open':
 			choices.append("Close")
-			
+
+		if self.state == 'Locked':
+			choices.append('Unlock')
+		
+		# Let the player choose
 		key = libtcod.console_wait_for_keypress(True)
 		choice = PopupChoicesMenu('How do you want to interact?',choices,True)
 		if not choice == None:
@@ -339,6 +361,10 @@ class DoorComponent:
 						ReplaceInList(self.owner.flags,pair[1],pair[0])
 					self.owner.char = self.closedchar
 					self.state = 'Closed'
+			elif choice == 'Lock':
+				self.state = 'Locked'
+			elif choice == 'Unlock':
+				self.state = 'Closed'
 					
 				
 ## Misc. Classes			
@@ -373,7 +399,7 @@ def ConstructTemplateTerrain(request,x,y):
 		return Terrain(x,y,'Floor','_',FLOOR_BGCOLOUR,FLOOR_FGCOLOUR,['Passable','NonViewBlocking',"CoveredByRoof"])
 	if request == 'Door':
 		newdoor = Terrain(x,y,'Door',179,FLOOR_FGCOLOUR,FLOOR_BGCOLOUR,['Impassable','ViewBlocking','IsDoor','Interactable',"CoveredByRoof"])
-		newdoor.Door = DoorComponent(newdoor,186,179,'Closed',[ ['Impassable','Passable'],['ViewBlocking','NonViewBlocking'] ])
+		newdoor.Door = DoorComponent(newdoor,186,179,'Closed',['Lockable'],[ ['Impassable','Passable'],['ViewBlocking','NonViewBlocking'] ])
 		return newdoor
 
 def BuildRoom(room):
@@ -650,7 +676,7 @@ def RenderEverything():
 	for ent in ActiveEntityList:
 		ent.Draw()
 
-	DrawAllPaths(MainConsole)
+	#DrawAllPaths(MainConsole)
 	RenderGui()
 	libtcod.console_blit(MainConsole, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 0, 0, 0)
 	libtcod.console_blit(GUIBottomConsole, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 0, 0, GUI_BOTTOM_Y)
@@ -749,6 +775,7 @@ def UpdateFOVtile(x,y):
 		canwalkthrough = True
 	for ent in ActiveEntityList:
 		if 'CanSee' in ent.flags:
+			#if ent.Vision.CanSee(x,y):
 			libtcod.map_set_properties(ent.Vision.fovmap,x,y,canseethrough,canwalkthrough)
 
 def RecomputeAllFOV():
@@ -814,9 +841,6 @@ Player.Vision.RecomputeFOV()
 
 
 ActiveEntityList = [Player]
-ActiveEntityList.append(GeneratePerson())
-ActiveEntityList.append(GeneratePerson())
-ActiveEntityList.append(GeneratePerson())
 ActiveEntityList.append(GeneratePerson())
 
 
