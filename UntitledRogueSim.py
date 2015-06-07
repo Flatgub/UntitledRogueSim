@@ -298,7 +298,24 @@ class AIComponent:
 					visiblepeople.append(ent)
 		return visiblepeople
 						
-x
+	def AddNewPeopleToKnowledge(self):
+		visiblepeople = GetListOfVisiblePeople():
+		for ent in visiblepeople:
+			if not self.knownpeopledict.__contains__(ent.id):
+				details = {'Name':ent.name
+				           'LastX':ent.x
+						   'LastY':ent.y}
+				self.knownpeopledict.update({ent.id:details})
+	
+	def UpdateKnowledge(self):
+		visiblepeople = GetListOfVisisblePeople()
+		for ent in visiblepeople:
+			if self.knownpeopledict.__contains__(ent.id):
+				details = {'Name':ent.name
+						   'LastX':ent.x
+						   'LastY':ent.y}
+				self.knownpeopledict.update({ent.id:details})
+			
 					
 			
 		
