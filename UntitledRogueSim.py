@@ -462,25 +462,28 @@ def HandlePlayerInput():
 		for ent in ActiveEntityList:
 			if 'ControlledByPlayer' in ent.flags:
 				ent.Move(0,-1)
-		playeraction = 'action'
+		playeraction = 'Moved'
 				
 	elif Key.vk == libtcod.KEY_DOWN:
 		for ent in ActiveEntityList:
 			if 'ControlledByPlayer' in ent.flags:
 				ent.Move(0,1)
-		playeraction = 'action'
+		playeraction = 'Moved'
 	
 	elif Key.vk == libtcod.KEY_LEFT:
 		for ent in ActiveEntityList:
 			if 'ControlledByPlayer' in ent.flags:
 				ent.Move(-1,0)
-		playeraction = 'action'
+		playeraction = 'Moved'
 				
 	elif Key.vk == libtcod.KEY_RIGHT:
 		for ent in ActiveEntityList:
 			if 'ControlledByPlayer' in ent.flags:
 				ent.Move(1,0)
-		playeraction = 'action'
+		playeraction = 'Moved'
+		
+	elif Key.vk == libtcod.KEY_SPACE:
+		playeraction = 'Waited'
 
 	elif Key.vk == libtcod.KEY_ENTER and Key.lalt:
 		libtcod.console_set_fullscreen(not libtcod.console_is_fullscreen())
