@@ -230,7 +230,7 @@ class AIComponent:
 	def __init__(self,owner,flags=['Conscious']):
 		self.owner = owner
 		self.flags = flags
-		self.state = 'New'
+		self.state = 'LookingForTarget'
 		self.knownpeopledict = {}
 		
 	def MoveAlongCurrentPath(self):
@@ -275,7 +275,37 @@ class AIComponent:
 		
 		self.MoveAlongCurrentPath()
 	
+	def GetListOfVisiblePeople(self):
+		visiblepeople = []
+		if hasattr(self.owner,'Vision'):
+			for ent in ActiveEntityList:
+				if self.owner.Vision.CanSee(ent.x,ent.y) and hasattr(ent,'Person'):
+					visiblepeople.append(ent)
+		return visiblepeople
+						
+	def AddNewPeopleToKnowledge(self):
+		print('AddNewPeopleToKnowledge() fired')
+		visiblepeople = GetListOfVisiblePeople()
+		for ent in visiblepeople:
+			if not self.knownpeopledict.__contains__(ent.id):
+				print('Adding ' + ent.name + ' to ' + self.owner.name + '\'s knowledge')
+				details = {'Name':ent.name,
+				           'LastX':ent.x,
+						   'LastY':ent.y}
+				self.knownpeopledict.update({ent.id:details})
+	
+	def UpdateKnowledge(self):
+		visiblepeople = GetListOfVisisblePeople()
+		self.AddNewPeopleToKnowledge()
+		for ent in visiblepeople:
+			if self.knownpeopledict.__contains__(ent.id):
+				details = {'Name':ent.name,
+						   'LastX':ent.x,
+						   'LastY':ent.y}
+				self.knownpeopledict.update({ent.id:details})
+				
 	def ActCurrentState(self):
+		#self.AddNewPeopleToKnowledge()
 		if self.state == 'Idle':
 			print(self.owner.name + ' Is Idle')
 			pass
@@ -289,32 +319,8 @@ class AIComponent:
 				if self.owner.Vision.CanSee(target.x,target.y):
 					self.state = 'Following'
 					self.FollowTarget(target)
+				
 	
-	def GetListOfVisiblePeople(self):
-		visiblepeople = []
-		if hasattr(self.owner,'Vision'):
-			for ent in ActiveEntityList:
-				if self.owner.Vision.CanSee(ent.x,ent.y) and hasattr(ent,'Person'):
-					visiblepeople.append(ent)
-		return visiblepeople
-						
-	def AddNewPeopleToKnowledge(self):
-		visiblepeople = GetListOfVisiblePeople():
-		for ent in visiblepeople:
-			if not self.knownpeopledict.__contains__(ent.id):
-				details = {'Name':ent.name
-				           'LastX':ent.x
-						   'LastY':ent.y}
-				self.knownpeopledict.update({ent.id:details})
-	
-	def UpdateKnowledge(self):
-		visiblepeople = GetListOfVisisblePeople()
-		for ent in visiblepeople:
-			if self.knownpeopledict.__contains__(ent.id):
-				details = {'Name':ent.name
-						   'LastX':ent.x
-						   'LastY':ent.y}
-				self.knownpeopledict.update({ent.id:details})
 			
 					
 			
@@ -786,7 +792,7 @@ def DoAllAI():
 	pass
 	for ent in ActiveEntityList:
 		if hasattr(ent,'AI'):
-			ent.AI.FollowTarget(Player)
+			ent.AI.ActCurrentState()
 	
 def UpdateFOVmap():
 	for ent in ActiveEntityList:
