@@ -31,6 +31,9 @@ ASSUMED_PASSABLE_TILES = ['Door']
 
 GameIsRunning = True
 
+
+newidentifier = 0
+
 ###############
 ##	Classes	 ##
 ###############
@@ -38,12 +41,17 @@ GameIsRunning = True
 ## Entity Related Classes
 class Entity:
 	def __init__(self,name, x, y , char, colour, flags = []):
+		global newidentifier
+		self.id = newidentifier
+		newidentifier += 1
 		self.name = name
+		print(self.name + ' has ID ' + str(self.id))
 		self.x = x
 		self.y = y
 		self.char = char
 		self.colour = colour
 		self.flags = flags
+		
 
 	def Move(self, nx, ny):
 		Tile = Map[self.x+nx][self.y+ny]
@@ -69,7 +77,6 @@ class PersonComponent:
 	def __init__(self,owner,flags = []):
 		self.owner = owner
 		self.flags = flags
-			
 
 	def Interact(self, nx, ny):
 		targettile = Map[self.owner.x+nx][self.owner.y+ny]
@@ -223,7 +230,8 @@ class AIComponent:
 	def __init__(self,owner,flags=['Conscious']):
 		self.owner = owner
 		self.flags = flags
-		self.state = 'New'
+		self.state = 'LookingForTarget'
+		self.knownpeopledict = {}
 		
 	def MoveAlongCurrentPath(self):
 		if 'Conscious' in self.flags:
@@ -267,7 +275,37 @@ class AIComponent:
 		
 		self.MoveAlongCurrentPath()
 	
+	def GetListOfVisiblePeople(self):
+		visiblepeople = []
+		if hasattr(self.owner,'Vision'):
+			for ent in ActiveEntityList:
+				if self.owner.Vision.CanSee(ent.x,ent.y) and hasattr(ent,'Person'):
+					visiblepeople.append(ent)
+		return visiblepeople
+						
+	def AddNewPeopleToKnowledge(self):
+		print('AddNewPeopleToKnowledge() fired')
+		visiblepeople = GetListOfVisiblePeople()
+		for ent in visiblepeople:
+			if not self.knownpeopledict.__contains__(ent.id):
+				print('Adding ' + ent.name + ' to ' + self.owner.name + '\'s knowledge')
+				details = {'Name':ent.name,
+				           'LastX':ent.x,
+						   'LastY':ent.y}
+				self.knownpeopledict.update({ent.id:details})
+	
+	def UpdateKnowledge(self):
+		visiblepeople = GetListOfVisisblePeople()
+		self.AddNewPeopleToKnowledge()
+		for ent in visiblepeople:
+			if self.knownpeopledict.__contains__(ent.id):
+				details = {'Name':ent.name,
+						   'LastX':ent.x,
+						   'LastY':ent.y}
+				self.knownpeopledict.update({ent.id:details})
+				
 	def ActCurrentState(self):
+		#self.AddNewPeopleToKnowledge()
 		if self.state == 'Idle':
 			print(self.owner.name + ' Is Idle')
 			pass
@@ -281,6 +319,12 @@ class AIComponent:
 				if self.owner.Vision.CanSee(target.x,target.y):
 					self.state = 'Following'
 					self.FollowTarget(target)
+				
+	
+			
+					
+			
+		
 
 ## Terrain Related Classes	
 class Terrain:
@@ -748,7 +792,7 @@ def DoAllAI():
 	pass
 	for ent in ActiveEntityList:
 		if hasattr(ent,'AI'):
-			ent.AI.FollowTarget(Player)
+			ent.AI.ActCurrentState()
 	
 def UpdateFOVmap():
 	for ent in ActiveEntityList:
@@ -826,7 +870,14 @@ def DrawAllPaths(con):
 	for ent in ActiveEntityList:
 		if hasattr(ent,'Pathfinding'):
 			ent.Pathfinding.DrawPath(con)
-	
+
+def GetEnt(id):
+	for ent in ActiveEntityList:
+		if ent.id == id:
+			return ent
+	return None
+
+			
 libtcod.console_set_custom_font('terminal8x8_gs_ro.png', libtcod.FONT_LAYOUT_ASCII_INROW | libtcod.FONT_TYPE_GREYSCALE)
 libtcod.console_init_root(SCREEN_WIDTH, SCREEN_HEIGHT, 'Untitled Roguelike Sim', False)
 MainConsole = libtcod.console_new(SCREEN_WIDTH, SCREEN_HEIGHT)
