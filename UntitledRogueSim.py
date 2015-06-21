@@ -217,14 +217,15 @@ class PathfindingComponent:
 		self.RecomputePath()
 		
 	def DrawPath(self,console):
-		for i in range(0,libtcod.dijkstra_size(self.currentpath)):
-			if not i == libtcod.dijkstra_size(self.currentpath)-1:
-				x,y = libtcod.dijkstra_get(self.currentpath,i)
-				libtcod.console_set_default_background(console,libtcod.yellow)
-				libtcod.console_put_char(console, x, y, '=', libtcod.BKGND_SET)
-			else:
-				x,y = libtcod.dijkstra_get(self.currentpath,i)
-				libtcod.console_set_char_background(console, x, y, libtcod.blue,libtcod.BKGND_SET)
+		if self.currentpath != None:
+			for i in range(0,libtcod.dijkstra_size(self.currentpath)):
+				if not i == libtcod.dijkstra_size(self.currentpath)-1:
+					x,y = libtcod.dijkstra_get(self.currentpath,i)
+					libtcod.console_set_default_background(console,libtcod.yellow)
+					libtcod.console_put_char(console, x, y, '=', libtcod.BKGND_SET)
+				else:
+					x,y = libtcod.dijkstra_get(self.currentpath,i)
+					libtcod.console_set_char_background(console, x, y, libtcod.blue,libtcod.BKGND_SET)
 					
 class AIComponent:
 	def __init__(self,owner,flags=['Conscious']):
@@ -284,8 +285,7 @@ class AIComponent:
 		return visiblepeople
 						
 	def AddNewPeopleToKnowledge(self):
-		print('AddNewPeopleToKnowledge() fired')
-		visiblepeople = GetListOfVisiblePeople()
+		visiblepeople = self.GetListOfVisiblePeople()
 		for ent in visiblepeople:
 			if not self.knownpeopledict.__contains__(ent.id):
 				print('Adding ' + ent.name + ' to ' + self.owner.name + '\'s knowledge')
@@ -295,10 +295,11 @@ class AIComponent:
 				self.knownpeopledict.update({ent.id:details})
 	
 	def UpdateKnowledge(self):
-		visiblepeople = GetListOfVisisblePeople()
+		visiblepeople = self.GetListOfVisiblePeople()
 		self.AddNewPeopleToKnowledge()
 		for ent in visiblepeople:
 			if self.knownpeopledict.__contains__(ent.id):
+				print(self.owner.name + " has updated their knowledge of " + ent.name)
 				details = {'Name':ent.name,
 						   'LastX':ent.x,
 						   'LastY':ent.y}
@@ -319,13 +320,11 @@ class AIComponent:
 				if self.owner.Vision.CanSee(target.x,target.y):
 					self.state = 'Following'
 					self.FollowTarget(target)
-				
 	
-			
-					
-			
-		
-
+	def ActGeneral(self):
+		self.UpdateKnowledge()
+		self.ActCurrentState()
+	
 ## Terrain Related Classes	
 class Terrain:
 	def __init__(self,x,y,name, char, bgcolour, fgcolour, flags = [], args = []):
@@ -789,10 +788,14 @@ def GetEntitiyNamesAtTile(x,y):
 	return names
 	
 def DoAllAI():
-	pass
 	for ent in ActiveEntityList:
 		if hasattr(ent,'AI'):
-			ent.AI.ActCurrentState()
+			ent.AI.ActGeneral()
+			
+def DrawAllPaths():
+	for ent in ActiveEntityList:
+		if hasattr(ent,'Pathfinding'):
+			ent.Pathfinding.DrawPath()
 	
 def UpdateFOVmap():
 	for ent in ActiveEntityList:
@@ -907,8 +910,9 @@ InitNavMaps()
 while GameIsRunning:
 	
 	libtcod.sys_check_for_event(libtcod.EVENT_KEY_PRESS|libtcod.EVENT_MOUSE,Key,Mouse)
-
+	
 	RenderEverything()
+	DrawAllPaths(None)
 	libtcod.console_flush()
 	for obj in ActiveEntityList:
 		obj.Clear()
@@ -917,7 +921,7 @@ while GameIsRunning:
 	if not playeraction == 'did-nothing':
 		RecomputeAllFOV()
 		DoAllAI()
-	#sleep(0.01)
+	
 	
 	
 
