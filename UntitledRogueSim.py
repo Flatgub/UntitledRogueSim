@@ -233,6 +233,7 @@ class AIComponent:
 		self.flags = flags
 		self.state = 'LookingForTarget'
 		self.knownpeopledict = {}
+		self.currentgoal = ["Nothing",None]
 		
 	def MoveAlongCurrentPath(self):
 		if 'Conscious' in self.flags:
@@ -320,6 +321,9 @@ class AIComponent:
 				if self.owner.Vision.CanSee(target.x,target.y):
 					self.state = 'Following'
 					self.FollowTarget(target)
+	
+	#def ActCurrentGoal(self):
+	#	if self.currentgoal[0] == "Follow"
 	
 	def ActGeneral(self):
 		self.UpdateKnowledge()
